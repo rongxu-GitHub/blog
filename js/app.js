@@ -283,6 +283,8 @@ function showPage(page) {
   document.getElementById('article-page').style.display = page === 'article' ? '' : 'none';
   document.getElementById('tags-page').style.display = page === 'tags' ? '' : 'none';
   document.getElementById('about-page').style.display = page === 'about' ? '' : 'none';
+  const editorPage = document.getElementById('editor-page');
+  if (editorPage) editorPage.style.display = page === 'editor' ? '' : 'none';
 
   document.querySelectorAll('.nav-links a').forEach(a => {
     a.classList.remove('active');
@@ -1479,134 +1481,34 @@ function getArticleModalHTML(article = null) {
   </div>`;
 }
 
-// 打开新建文章弹窗
+// 打开新建文章页面
 function openNewArticleModal() {
-  const modal = document.getElementById('article-modal');
-  if (modal) {
-    modal.outerHTML = getArticleModalHTML();
-  } else {
-    document.body.insertAdjacentHTML('beforeend', getArticleModalHTML());
-  }
-  document.getElementById('article-modal').style.display = 'flex';
-  document.getElementById('article-title').focus();
+  openEditor('new');
 }
 
-// 打开编辑文章弹窗
+// 打开编辑文章页面
 function openEditArticleModal(articleId) {
-  const userArticles = loadUserArticles();
-  const article = userArticles.find(a => a.id === articleId);
-  if (!article) {
-    alert('文章不存在');
-    return;
-  }
-  const modal = document.getElementById('article-modal');
-  if (modal) {
-    modal.outerHTML = getArticleModalHTML(article);
-  } else {
-    document.body.insertAdjacentHTML('beforeend', getArticleModalHTML(article));
-  }
-  document.getElementById('article-modal').style.display = 'flex';
+  openEditor('edit', articleId);
 }
 
-// 关闭弹窗
+// 关闭编辑页面
 function closeArticleModal() {
-  const modal = document.getElementById('article-modal');
-  if (modal) modal.style.display = 'none';
+  closeEditor();
 }
 
 // 发布新文章
 function publishArticle() {
-  const title = document.getElementById('article-title').value.trim();
-  const excerpt = document.getElementById('article-excerpt').value.trim();
-  const tag = document.getElementById('article-tag').value;
-  const emoji = document.getElementById('article-emoji').value.trim() || '📝';
-  const cover = document.getElementById('article-cover').value.trim() || 'linear-gradient(135deg, #667eea, #764ba2)';
-  const content = document.getElementById('article-content').value.trim();
-
-  if (!title) {
-    document.getElementById('article-title').focus();
-    return;
-  }
-
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10);
-  const wordCount = content.replace(/[#*`\-\n]/g, '').length;
-  const readTime = Math.max(1, Math.ceil(wordCount / 500)) + ' 分钟';
-
-  const newArticle = {
-    id: generateArticleId(),
-    title,
-    excerpt: excerpt || content.slice(0, 100) + '...',
-    tag,
-    date: dateStr,
-    readTime,
-    emoji,
-    cover,
-    content: content || excerpt || title
-  };
-
-  const userArticles = loadUserArticles();
-  userArticles.unshift(newArticle);
-  saveUserArticles(userArticles);
-
-  closeArticleModal();
-  renderArticles();
-  
-  // 滚动到顶部
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  saveArticleFromEditor();
 }
 
 // 更新文章
 function updateArticle(articleId) {
-  const title = document.getElementById('article-title').value.trim();
-  const excerpt = document.getElementById('article-excerpt').value.trim();
-  const tag = document.getElementById('article-tag').value;
-  const emoji = document.getElementById('article-emoji').value.trim() || '📝';
-  const cover = document.getElementById('article-cover').value.trim() || 'linear-gradient(135deg, #667eea, #764ba2)';
-  const content = document.getElementById('article-content').value.trim();
-
-  if (!title) {
-    document.getElementById('article-title').focus();
-    return;
-  }
-
-  const userArticles = loadUserArticles();
-  const idx = userArticles.findIndex(a => a.id === articleId);
-  if (idx === -1) {
-    alert('文章不存在');
-    return;
-  }
-
-  const wordCount = content.replace(/[#*`\-\n]/g, '').length;
-  const readTime = Math.max(1, Math.ceil(wordCount / 500)) + ' 分钟';
-
-  userArticles[idx] = {
-    ...userArticles[idx],
-    title,
-    excerpt: excerpt || content.slice(0, 100) + '...',
-    tag,
-    emoji,
-    cover,
-    content: content || excerpt || title,
-    readTime,
-    updatedAt: new Date().toISOString()
-  };
-
-  saveUserArticles(userArticles);
-  closeArticleModal();
-  renderArticles();
+  saveArticleFromEditor();
 }
 
 // 删除文章
 function deleteArticle(articleId) {
-  if (!confirm('确定要删除这篇文章吗？此操作不可撤销。')) return;
-  
-  const userArticles = loadUserArticles();
-  const filtered = userArticles.filter(a => a.id !== articleId);
-  saveUserArticles(filtered);
-  
-  closeArticleModal();
-  renderArticles();
+  deleteArticleFromEditor();
 }
 
 // 显示用户文章（用于文章详情页）
@@ -1614,4 +1516,157 @@ function getUserArticleById(id) {
   const userArticles = loadUserArticles();
   return userArticles.find(a => a.id === id);
 }
+
+// ===== 文章编辑器（独立页面）=====
+
+// 打开编辑器页面
+function openEditor(mode, articleId) {
+  const isEdit = mode === 'edit';
+  document.getElementById('editor-title').textContent = isEdit ? '编辑文章' : '新建文章';
+  document.getElementById('editor-subtitle').textContent = isEdit ? '修改并保存文章' : '撰写并发布新文章';
+  document.getElementById('editor-save-btn').textContent = isEdit ? '保存修改' : '发布文章';
+  document.getElementById('editor-delete-btn').style.display = isEdit ? '' : 'none';
+
+  if (isEdit && articleId) {
+    const userArticles = loadUserArticles();
+    const article = userArticles.find(a => a.id === articleId);
+    if (!article) { alert('文章不存在'); return; }
+    document.getElementById('editor-title-input').value = article.title || '';
+    document.getElementById('editor-excerpt-input').value = article.excerpt || '';
+    document.getElementById('editor-tag-input').value = article.tag || 'tech';
+    document.getElementById('editor-emoji-input').value = article.emoji || '📝';
+    document.getElementById('editor-cover-input').value = article.cover || 'linear-gradient(135deg, #667eea, #764ba2)';
+    document.getElementById('editor-content-input').value = article.content || '';
+    document.getElementById('editor-page').dataset.articleId = articleId;
+  } else {
+    document.getElementById('editor-title-input').value = '';
+    document.getElementById('editor-excerpt-input').value = '';
+    document.getElementById('editor-tag-input').value = 'tech';
+    document.getElementById('editor-emoji-input').value = '📝';
+    document.getElementById('editor-cover-input').value = 'linear-gradient(135deg, #667eea, #764ba2)';
+    document.getElementById('editor-content-input').value = '';
+    document.getElementById('editor-page').dataset.articleId = '';
+  }
+
+  document.getElementById('editor-preview').style.display = 'none';
+  document.getElementById('preview-toggle-btn').textContent = '显示预览';
+  showPage('editor');
+  setTimeout(() => document.getElementById('editor-title-input').focus(), 100);
+}
+
+function closeEditor() {
+  showPage('home');
+}
+
+// 从编辑器保存文章
+function saveArticleFromEditor() {
+  const title = document.getElementById('editor-title-input').value.trim();
+  const excerpt = document.getElementById('editor-excerpt-input').value.trim();
+  const tag = document.getElementById('editor-tag-input').value;
+  const emoji = document.getElementById('editor-emoji-input').value.trim() || '📝';
+  const cover = document.getElementById('editor-cover-input').value.trim() || 'linear-gradient(135deg, #667eea, #764ba2)';
+  const content = document.getElementById('editor-content-input').value.trim();
+  const articleId = document.getElementById('editor-page').dataset.articleId;
+
+  if (!title) { document.getElementById('editor-title-input').focus(); return; }
+
+  const wordCount = content.replace(/[#*`\-\n]/g, '').length;
+  const readTime = Math.max(1, Math.ceil(wordCount / 500)) + ' 分钟';
+  const today = new Date().toISOString().slice(0, 10);
+  const userArticles = loadUserArticles();
+
+  if (articleId) {
+    const idx = userArticles.findIndex(a => a.id === articleId);
+    if (idx === -1) { alert('文章不存在'); return; }
+    userArticles[idx] = {
+      ...userArticles[idx],
+      title, excerpt: excerpt || content.slice(0, 100) + '...',
+      tag, emoji, cover,
+      content: content || excerpt || title,
+      readTime, updatedAt: new Date().toISOString()
+    };
+  } else {
+    userArticles.unshift({
+      id: generateArticleId(),
+      title, excerpt: excerpt || content.slice(0, 100) + '...',
+      tag, emoji, cover,
+      content: content || excerpt || title,
+      date: today, readTime,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  saveUserArticles(userArticles);
+  closeEditor();
+  renderArticles();
+  if (currentPage === 'tags') renderTagsPage();
+}
+
+// 从编辑器删除文章
+function deleteArticleFromEditor() {
+  const articleId = document.getElementById('editor-page').dataset.articleId;
+  if (!articleId) return;
+  if (!confirm('确定要删除这篇文章吗？此操作不可撤销。')) return;
+  const userArticles = loadUserArticles();
+  saveUserArticles(userArticles.filter(a => a.id !== articleId));
+  closeEditor();
+  renderArticles();
+  if (currentPage === 'tags') renderTagsPage();
+}
+
+// ===== Markdown 工具栏 =====
+function insertMD(type) {
+  const ta = document.getElementById('editor-content-input');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const val = ta.value;
+  let insert = '', cursorOffset = 0;
+  switch(type) {
+    case 'bold':   insert = '**粗体文字**'; cursorOffset = 2; break;
+    case 'italic': insert = '*斜体文字*'; cursorOffset = 1; break;
+    case 'h1':     insert = '# 标题\n'; break;
+    case 'h2':     insert = '## 二级标题\n'; break;
+    case 'h3':     insert = '### 三级标题\n'; break;
+    case 'ul':     insert = '- 列表项\n'; break;
+    case 'code':   insert = '`行内代码`'; cursorOffset = 1; break;
+    case 'codeblock': insert = '```\n代码块\n```\n'; break;
+    case 'link':   insert = '[链接文字](https://)'; cursorOffset = 1; break;
+    case 'quote':  insert = '> 引用文字\n'; break;
+    case 'hr':     insert = '\n---\n'; break;
+  }
+  ta.value = val.slice(0, start) + insert + val.slice(end);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = start + insert.length - cursorOffset;
+}
+
+function togglePreview() {
+  const preview = document.getElementById('editor-preview');
+  const btn = document.getElementById('preview-toggle-btn');
+  if (preview.style.display === 'none') {
+    renderPreview();
+    preview.style.display = '';
+    btn.textContent = '隐藏预览';
+  } else {
+    preview.style.display = 'none';
+    btn.textContent = '显示预览';
+  }
+}
+
+function renderPreview() {
+  const content = document.getElementById('editor-content-input').value;
+  const preview = document.getElementById('editor-preview');
+  if (typeof parseMarkdown === 'function') {
+    preview.innerHTML = parseMarkdown(content);
+  } else {
+    preview.textContent = content;
+  }
+}
+
+// 监听内容变化实时更新预览
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('editor-content-input');
+  if (ta) ta.addEventListener('input', () => {
+    const preview = document.getElementById('editor-preview');
+    if (preview && preview.style.display !== 'none') renderPreview();
+  });
+});
 
