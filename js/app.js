@@ -153,10 +153,36 @@ function filterByTag(tagId) {
   renderArticles();
 }
 
+// ===== 文章数据存储 =====
+const USER_ARTICLES_KEY = 'user_blog_articles';
+
+// 从 localStorage 加载用户文章
+function loadUserArticles() {
+  try {
+    const saved = localStorage.getItem(USER_ARTICLES_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return [];
+}
+
+// 保存用户文章到 localStorage
+function saveUserArticles(articles) {
+  localStorage.setItem(USER_ARTICLES_KEY, JSON.stringify(articles));
+}
+
+// 生成唯一 ID
+function generateArticleId() {
+  return 'u' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
 // ===== 文章列表渲染 =====
 function renderArticles() {
   const container = document.getElementById('articles-grid');
-  let articles = BLOG_DATA.articles;
+  
+  // 合并静态文章和用户文章
+  const userArticles = loadUserArticles();
+  const allArticles = [...BLOG_DATA.articles, ...userArticles];
+  let articles = allArticles;
 
   if (currentTag !== 'all') {
     articles = articles.filter(a => a.tag === currentTag);
@@ -170,10 +196,18 @@ function renderArticles() {
     );
   }
 
+  // 新建文章按钮 HTML
+  const newArticleBtn = `
+    <div class="article-card new-article-card" onclick="openNewArticleModal()" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; background:linear-gradient(135deg,#f8f9fc,#eef1f8); border:2px dashed #c4cae8;">
+      <div style="font-size:3rem; margin-bottom:12px;">✍️</div>
+      <span style="font-size:0.9rem; color:#5f6672; font-weight:500;">新建文章</span>
+    </div>
+  `;
+
   container.innerHTML = '';
 
   if (articles.length === 0) {
-    container.innerHTML = `
+    container.innerHTML = newArticleBtn + `
       <div class="empty-state">
         <div class="empty-icon">🔍</div>
         <p>没有找到相关文章</p>
@@ -181,12 +215,18 @@ function renderArticles() {
     return;
   }
 
+  // 渲染新建按钮
+  const btnDiv = document.createElement('div');
+  btnDiv.innerHTML = newArticleBtn;
+  container.appendChild(btnDiv.firstElementChild);
+
   articles.forEach(article => {
     const isExternal = !!article.externalLink;
+    const isUserArticle = article.id.startsWith('u');
 
     // 外链文章用 <a> 包裹，内部文章用 <div>
     const card = document.createElement(isExternal ? 'a' : 'div');
-    card.className = 'article-card';
+    card.className = 'article-card' + (isUserArticle ? ' user-article-card' : '');
     if (isExternal) {
       card.href = article.externalLink;
       card.target = '_blank';
@@ -195,9 +235,13 @@ function renderArticles() {
       card.onclick = () => { location.hash = '#article/' + article.id; };
     }
 
+    // 用户文章显示编辑按钮
+    const editBtn = isUserArticle ? `<button onclick="event.stopPropagation(); openEditArticleModal('${article.id}')" style="position:absolute; top:8px; right:8px; padding:4px 10px; background:rgba(255,255,255,0.9); border:none; border-radius:4px; font-size:0.75rem; cursor:pointer; color:#5f6672;">✏️ 编辑</button>` : '';
+
     card.innerHTML = `
-      <div class="article-cover" style="background: ${article.cover}">
+      <div class="article-cover" style="background: ${article.cover}; position:relative;">
         <span style="font-size: 2.8rem">${article.emoji}</span>
+        ${editBtn}
       </div>
       <div class="article-meta">
         <span class="article-date">${formatDate(article.date)}</span>
@@ -258,7 +302,11 @@ function showPage(page) {
 
 // ===== 文章详情 =====
 function showArticle(id) {
-  const article = BLOG_DATA.articles.find(a => a.id === id);
+  // 先查找静态文章，再查找用户文章
+  let article = BLOG_DATA.articles.find(a => a.id === id);
+  if (!article) {
+    article = getUserArticleById(id);
+  }
   if (!article) { showPage('home'); return; }
 
   currentArticleId = id;
@@ -1344,3 +1392,211 @@ function renderNews(articles, fromCache) {
     }).join('');
   }
 }
+
+// ===== 文章编辑功能 =====
+
+// 文章编辑弹窗 HTML
+function getArticleModalHTML(article = null) {
+  const isEdit = !!article;
+  const title = isEdit ? '编辑文章' : '新建文章';
+  const defaultEmoji = article?.emoji || '📝';
+  const defaultCover = article?.cover || 'linear-gradient(135deg, #667eea, #764ba2)';
+  
+  const tagOptions = BLOG_DATA.tags.filter(t => t.id !== 'all').map(t => 
+    `<option value="${t.id}" ${article?.tag === t.id ? 'selected' : ''}>${t.name}</option>`
+  ).join('');
+
+  return `
+  <div id="article-modal" style="display:none; position:fixed; inset:0; z-index:10000; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;">
+    <div style="background:#fff; border-radius:16px; padding:28px 32px; width:90%; max-width:700px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <h2 style="font-size:1.2rem; font-weight:600; color:#1a1a2e; margin:0;">${title}</h2>
+        <button onclick="closeArticleModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#9ca3af; padding:4px;">✕</button>
+      </div>
+      
+      <!-- 基本信息 -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">标题 *</label>
+        <input id="article-title" type="text" placeholder="输入文章标题" value="${article?.title || ''}"
+          style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.95rem; outline:none; box-sizing:border-box;">
+      </div>
+      
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">摘要</label>
+        <textarea id="article-excerpt" placeholder="输入文章摘要（选填）" rows="2"
+          style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.9rem; outline:none; box-sizing:border-box; resize:vertical;">${article?.excerpt || ''}</textarea>
+      </div>
+      
+      <div style="display:flex; gap:16px; margin-bottom:20px;">
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">标签</label>
+          <select id="article-tag" style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.9rem; outline:none; cursor:pointer;">
+            ${tagOptions}
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">图标</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="article-emoji" type="text" placeholder="如 📝" value="${defaultEmoji}" maxlength="4"
+              style="width:60px; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:1.2rem; text-align:center; outline:none;">
+            <input id="article-cover" type="text" placeholder="背景渐变" value="${defaultCover}"
+              style="flex:1; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.85rem; outline:none;">
+          </div>
+        </div>
+      </div>
+      
+      <!-- 内容 -->
+      <div style="margin-bottom:24px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">
+          内容 <span style="font-size:0.75rem; color:#9ca3af;">（支持 Markdown 格式）</span>
+        </label>
+        <textarea id="article-content" placeholder="输入文章内容，支持 Markdown 格式：&#10;&#10;# 标题&#10;## 二级标题&#10;&#10;**粗体** *斜体*&#10;&#10;- 列表项&#10;- 列表项&#10;&#10;```javascript&#10;代码块&#10;```" rows="12"
+          style="width:100%; padding:12px 14px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box; resize:vertical; font-family:'Monaco','Menlo',monospace;">${article?.content || ''}</textarea>
+      </div>
+      
+      <!-- 按钮 -->
+      <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid #e5e7eb; padding-top:20px;">
+        ${isEdit ? `<button onclick="deleteArticle('${article.id}')" style="padding:10px 20px; border:1px solid #dc2626; border-radius:8px; background:#fff; color:#dc2626; font-size:0.9rem; cursor:pointer; margin-right:auto;">🗑️ 删除</button>` : ''}
+        <button onclick="closeArticleModal()" style="padding:10px 20px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#5f6672; font-size:0.9rem; cursor:pointer;">取消</button>
+        <button onclick="${isEdit ? `updateArticle('${article.id}')` : 'publishArticle()'}" style="padding:10px 24px; border:none; border-radius:8px; background:#3b5bdb; color:#fff; font-size:0.9rem; cursor:pointer; font-weight:500;">${isEdit ? '保存修改' : '发布文章'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 打开新建文章弹窗
+function openNewArticleModal() {
+  const modal = document.getElementById('article-modal');
+  if (modal) {
+    modal.outerHTML = getArticleModalHTML();
+  } else {
+    document.body.insertAdjacentHTML('beforeend', getArticleModalHTML());
+  }
+  document.getElementById('article-modal').style.display = 'flex';
+  document.getElementById('article-title').focus();
+}
+
+// 打开编辑文章弹窗
+function openEditArticleModal(articleId) {
+  const userArticles = loadUserArticles();
+  const article = userArticles.find(a => a.id === articleId);
+  if (!article) {
+    alert('文章不存在');
+    return;
+  }
+  const modal = document.getElementById('article-modal');
+  if (modal) {
+    modal.outerHTML = getArticleModalHTML(article);
+  } else {
+    document.body.insertAdjacentHTML('beforeend', getArticleModalHTML(article));
+  }
+  document.getElementById('article-modal').style.display = 'flex';
+}
+
+// 关闭弹窗
+function closeArticleModal() {
+  const modal = document.getElementById('article-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// 发布新文章
+function publishArticle() {
+  const title = document.getElementById('article-title').value.trim();
+  const excerpt = document.getElementById('article-excerpt').value.trim();
+  const tag = document.getElementById('article-tag').value;
+  const emoji = document.getElementById('article-emoji').value.trim() || '📝';
+  const cover = document.getElementById('article-cover').value.trim() || 'linear-gradient(135deg, #667eea, #764ba2)';
+  const content = document.getElementById('article-content').value.trim();
+
+  if (!title) {
+    document.getElementById('article-title').focus();
+    return;
+  }
+
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10);
+  const wordCount = content.replace(/[#*`\-\n]/g, '').length;
+  const readTime = Math.max(1, Math.ceil(wordCount / 500)) + ' 分钟';
+
+  const newArticle = {
+    id: generateArticleId(),
+    title,
+    excerpt: excerpt || content.slice(0, 100) + '...',
+    tag,
+    date: dateStr,
+    readTime,
+    emoji,
+    cover,
+    content: content || excerpt || title
+  };
+
+  const userArticles = loadUserArticles();
+  userArticles.unshift(newArticle);
+  saveUserArticles(userArticles);
+
+  closeArticleModal();
+  renderArticles();
+  
+  // 滚动到顶部
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 更新文章
+function updateArticle(articleId) {
+  const title = document.getElementById('article-title').value.trim();
+  const excerpt = document.getElementById('article-excerpt').value.trim();
+  const tag = document.getElementById('article-tag').value;
+  const emoji = document.getElementById('article-emoji').value.trim() || '📝';
+  const cover = document.getElementById('article-cover').value.trim() || 'linear-gradient(135deg, #667eea, #764ba2)';
+  const content = document.getElementById('article-content').value.trim();
+
+  if (!title) {
+    document.getElementById('article-title').focus();
+    return;
+  }
+
+  const userArticles = loadUserArticles();
+  const idx = userArticles.findIndex(a => a.id === articleId);
+  if (idx === -1) {
+    alert('文章不存在');
+    return;
+  }
+
+  const wordCount = content.replace(/[#*`\-\n]/g, '').length;
+  const readTime = Math.max(1, Math.ceil(wordCount / 500)) + ' 分钟';
+
+  userArticles[idx] = {
+    ...userArticles[idx],
+    title,
+    excerpt: excerpt || content.slice(0, 100) + '...',
+    tag,
+    emoji,
+    cover,
+    content: content || excerpt || title,
+    readTime,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveUserArticles(userArticles);
+  closeArticleModal();
+  renderArticles();
+}
+
+// 删除文章
+function deleteArticle(articleId) {
+  if (!confirm('确定要删除这篇文章吗？此操作不可撤销。')) return;
+  
+  const userArticles = loadUserArticles();
+  const filtered = userArticles.filter(a => a.id !== articleId);
+  saveUserArticles(filtered);
+  
+  closeArticleModal();
+  renderArticles();
+}
+
+// 显示用户文章（用于文章详情页）
+function getUserArticleById(id) {
+  const userArticles = loadUserArticles();
+  return userArticles.find(a => a.id === id);
+}
+
