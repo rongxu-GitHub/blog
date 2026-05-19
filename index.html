@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>六心居</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ======== 导航栏 ======== -->
+<nav class="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a class="nav-logo" href="#" onclick="goHome()">
+        <div class="logo-icon">
+          <span class="nav-logo-initial">B</span>
+        </div>
+        <span class="nav-logo-text">博客</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#" id="nav-home" class="active" onclick="goHome()">首页</a></li>
+        <li><a href="#tags" id="nav-tags">标签</a></li>
+        <li><a href="#about" id="nav-about">关于</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ======== 首页 ======== -->
+<div id="home-page">
+
+  <!-- Hero 区域 -->
+  <section class="hero">
+    <div class="container">
+      <h1>六心居</h1>
+      <p class="hero-subtitle">记录思考，分享生活</p>
+      <p class="hero-desc">这里是我的个人博客</p>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input id="search-input" type="text" placeholder="搜索文章标题、内容...">
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="num" id="stat-articles">0</span>
+          <span class="label">篇文章</span>
+        </div>
+        <div class="hero-stat">
+          <span class="num" id="stat-tags">0</span>
+          <span class="label">个标签</span>
+        </div>
+        <div class="hero-stat">
+          <span class="num" id="stat-words">0</span>
+          <span class="label">字内容</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 主内容 -->
+  <main class="main-content">
+    <div class="container">
+      <!-- 标签筛选 -->
+      <div class="tag-filter" id="tag-filter"></div>
+      <!-- 文章网格 -->
+      <div class="articles-grid" id="articles-grid"></div>
+    </div>
+  </main>
+
+</div>
+
+<!-- ======== 文章详情页 ======== -->
+<div id="article-page" style="display:none">
+
+  <div class="article-detail-hero">
+    <div class="container">
+      <button class="back-btn" onclick="goBack()">← 返回</button>
+      <h1 id="article-hero-title"></h1>
+      <div class="article-detail-meta">
+        <span>📅 <span id="article-hero-date"></span></span>
+        <span>📖 <span id="article-hero-readtime"></span></span>
+        <span id="article-hero-tag"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="article-layout container">
+    <!-- 目录侧边栏 -->
+    <aside class="toc-sidebar" id="toc-sidebar">
+      <div class="toc-sticky">
+        <p class="toc-title">目录</p>
+        <ul class="toc-list" id="toc-list"></ul>
+      </div>
+    </aside>
+
+    <!-- 文章正文 -->
+    <article class="article-body">
+      <div class="markdown-content" id="article-content"></div>
+    </article>
+  </div>
+
+</div>
+
+<!-- ======== 标签页 ======== -->
+<div id="tags-page" style="display:none">
+  <div class="container">
+
+    <div class="page-header">
+      <h1>标签分类</h1>
+      <p>按主题浏览所有文章，点击标签快速筛选</p>
+    </div>
+
+    <div class="tags-cloud" id="tags-cloud"></div>
+
+    <div style="margin-bottom: 24px">
+      <h2 id="tags-section-title" style="font-size: 1.1rem; font-weight: 600; color: var(--text-secondary)">全部文章</h2>
+    </div>
+
+    <div class="articles-grid" id="tags-articles-grid"></div>
+  </div>
+</div>
+
+<!-- ======== 关于页 ======== -->
+<div id="about-page" style="display:none">
+
+  <div class="about-hero">
+    <div class="avatar" id="about-avatar">
+      <span id="about-avatar-initial" style="color:white;font-size:2.5rem">晨</span>
+    </div>
+    <h1 id="about-author-name">晨光</h1>
+    <p class="bio" id="about-author-bio"></p>
+    <div class="social-links">
+      <span class="social-link">✉️ 邮件联系</span>
+      <span class="social-link">🐙 GitHub</span>
+      <span class="social-link">📝 订阅</span>
+    </div>
+  </div>
+
+  <div class="about-cards container">
+
+    <div class="about-card">
+      <div class="card-icon">👨‍💻</div>
+      <h3>关于我</h3>
+      <p>独立开发者，热爱技术与写作。相信好的技术和好的文字都能改变世界，哪怕只是一点点。</p>
+    </div>
+
+    <div class="about-card">
+      <div class="card-icon">🔧</div>
+      <h3>技术栈</h3>
+      <p>专注于 Web 前后端开发，热衷于探索新技术和工具。</p>
+      <div class="skills-list" id="about-skills"></div>
+    </div>
+
+    <div class="about-card">
+      <div class="card-icon">📊</div>
+      <h3>博客数据</h3>
+      <p>截至目前，我已经在这里写下了这些内容：</p>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px;">
+        <div style="text-align:center">
+          <div style="font-size:1.5rem; font-weight:700; color:var(--primary)" id="about-article-count">0</div>
+          <div style="font-size:0.78rem; color:var(--text-muted)">篇文章</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.5rem; font-weight:700; color:var(--primary)" id="about-tag-count">0</div>
+          <div style="font-size:0.78rem; color:var(--text-muted)">个标签</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.5rem; font-weight:700; color:var(--primary)" id="about-words-count">0</div>
+          <div style="font-size:0.78rem; color:var(--text-muted)">字内容</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-card">
+      <div class="card-icon">💡</div>
+      <h3>写作初衷</h3>
+      <p>写作是思考的延伸。在这里，我记录学到的技术知识、生活的感悟，以及那些让我停下来思考的事情。</p>
+    </div>
+
+    <div class="about-card">
+      <div class="card-icon">📬</div>
+      <h3>联系我</h3>
+      <p>如果你想交流想法、合作项目，或者只是打个招呼，都欢迎通过以下方式联系我。</p>
+      <p style="margin-top:10px; font-size:0.85rem; color:var(--primary)">hello@blog.dev</p>
+    </div>
+
+    <div class="about-card">
+      <div class="card-icon">🎯</div>
+      <h3>2026 目标</h3>
+      <p>保持每周一篇的更新频率；完成一个开源项目；读完 12 本书；更多地在代码之外思考。</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======== 页脚 ======== -->
+<footer>
+  <p>© 2026 <span id="footer-title">六心居</span> · 用热爱驱动写作</p>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
