@@ -193,6 +193,111 @@
   </div>
 </div>
 
+<!-- ======== 文章编辑页 ======== -->
+<div id="editor-page" style="display:none">
+  <div class="article-detail-hero" style="padding:20px 0;">
+    <div class="container">
+      <button class="back-btn" onclick="closeEditor()">← 返回</button>
+      <h1 id="editor-title" style="margin:12px 0 8px;">新建文章</h1>
+      <p style="color:#9ca3af; font-size:0.88rem;" id="editor-subtitle">撰写并发布新文章</p>
+    </div>
+  </div>
+  <div class="container" style="padding:24px 16px 60px;">
+    <div style="max-width:760px; margin:0 auto;">
+      <!-- 标题 -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">标题 *</label>
+        <input id="editor-title-input" type="text" placeholder="输入文章标题" 
+          style="width:100%; padding:12px 16px; border:1px solid #e5e7eb; border-radius:10px; font-size:1.05rem; outline:none; box-sizing:border-box;">
+      </div>
+      <!-- 摘要 -->
+      <div style="margin-bottom:20px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">摘要</label>
+        <textarea id="editor-excerpt-input" placeholder="输入文章摘要（选填，不填则自动截取正文前100字）" rows="2"
+          style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
+      </div>
+      <!-- 标签 & Emoji -->
+      <div style="display:flex; gap:16px; margin-bottom:20px;">
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">标签</label>
+          <select id="editor-tag-input" style="width:100%; padding:10px 14px; border:1px solid #e5e7eb; border-radius:10px; font-size:0.92rem; outline:none; cursor:pointer; background:#fff;">
+            <option value="tech">技术</option>
+            <option value="life">生活</option>
+            <option value="design">设计</option>
+            <option value="thinking">思考</option>
+            <option value="reading">阅读</option>
+            <option value="tools">工具</option>
+            <option value="stock">股市</option>
+            <option value="news">新闻</option>
+          </select>
+        </div>
+        <div style="width:100px;">
+          <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">Emoji</label>
+          <input id="editor-emoji-input" type="text" placeholder="📝" maxlength="4"
+            style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:1.2rem; text-align:center; outline:none; box-sizing:border-box;">
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">封面渐变</label>
+          <input id="editor-cover-input" type="text" placeholder="linear-gradient(...)" value="linear-gradient(135deg, #667eea, #764ba2)"
+            style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; font-size:0.82rem; outline:none; box-sizing:border-box;">
+        </div>
+      </div>
+      <!-- 内容 -->
+      <div style="margin-bottom:28px;">
+        <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">
+          正文内容 <span style="font-size:0.75rem; color:#9ca3af;">（支持 Markdown 格式）</span>
+        </label>
+        <div style="display:flex; gap:12px;">
+          <!-- Markdown 工具栏 -->
+          <div style="flex:1;">
+            <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+              <button onclick="insertMD('bold')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">**B**</button>
+              <button onclick="insertMD('italic')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">*I*</button>
+              <button onclick="insertMD('h1')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">H1</button>
+              <button onclick="insertMD('h2')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">H2</button>
+              <button onclick="insertMD('h3')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">H3</button>
+              <button onclick="insertMD('ul')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">• 列表</button>
+              <button onclick="insertMD('code')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">代码</button>
+              <button onclick="insertMD('codeblock')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">```</button>
+              <button onclick="insertMD('link')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">🔗</button>
+              <button onclick="insertMD('quote')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">" 引用</button>
+              <button onclick="insertMD('hr')" style="padding:4px 10px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.82rem;">— 分割线</button>
+            </div>
+            <textarea id="editor-content-input" placeholder="在此输入文章内容，支持 Markdown 格式...
+
+# 文章标题
+## 二级标题
+
+**粗体文字** 和 *斜体文字*
+
+- 列表项 1
+- 列表项 2
+
+```javascript
+代码块示例
+```
+
+> 引用文字" rows="20"
+              style="width:100%; padding:14px 16px; border:1px solid #e5e7eb; border-radius:10px; font-size:0.92rem; outline:none; box-sizing:border-box; resize:vertical; font-family:'Monaco','Menlo',monospace; line-height:1.7;"></textarea>
+          </div>
+          <!-- 实时预览 -->
+          <div id="editor-preview" style="flex:1; padding:14px 16px; border:1px solid #e5e7eb; border-radius:10px; font-size:0.92rem; line-height:1.7; overflow-y:auto; background:#fafbfc; display:none;">
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button onclick="togglePreview()" id="preview-toggle-btn" style="padding:5px 14px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; font-size:0.8rem; color:#5f6672;">显示预览</button>
+        </div>
+      </div>
+      <!-- 操作按钮 -->
+      <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid #e5e7eb; padding-top:20px;">
+        <button id="editor-delete-btn" onclick="deleteArticleFromEditor()" style="padding:10px 20px; border:1px solid #dc2626; border-radius:8px; background:#fff; color:#dc2626; font-size:0.9rem; cursor:pointer; margin-right:auto; display:none;">🗑️ 删除</button>
+        <button onclick="closeEditor()" style="padding:10px 24px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#5f6672; font-size:0.9rem; cursor:pointer;">取消</button>
+        <button onclick="saveArticleFromEditor()" id="editor-save-btn" style="padding:10px 28px; border:none; border-radius:8px; background:#3b5bdb; color:#fff; font-size:0.9rem; cursor:pointer; font-weight:500;">发布文章</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ======== 页脚 ======== -->
 <footer>
   <p>© 2026 <span id="footer-title">六心居</span> · 用热爱驱动写作</p>
