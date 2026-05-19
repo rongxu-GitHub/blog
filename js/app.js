@@ -431,20 +431,31 @@ function filterTagsPage(tagId, clickedItem) {
 
 function renderTagsArticles(tagId) {
   const container = document.getElementById('tags-articles-grid');
+  const userArticles = loadUserArticles();
+  const allArticles = [...BLOG_DATA.articles, ...userArticles];
   const articles = tagId === 'all' 
-    ? BLOG_DATA.articles 
-    : BLOG_DATA.articles.filter(a => a.tag === tagId);
+    ? allArticles 
+    : allArticles.filter(a => a.tag === tagId);
 
   document.getElementById('tags-section-title').textContent = 
     tagId === 'all' ? '全部文章' : `${getTagName(tagId)} · ${articles.length} 篇`;
 
-  container.innerHTML = '';
+  if (articles.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="grid-column: 1/-1;">
+        <div class="empty-icon">📝</div>
+        <p>该分类下暂无文章</p>
+      </div>`;
+    return;
+  }
+
   articles.forEach(article => {
     const isExternal = !!article.externalLink;
+    const isUserArticle = article.id.startsWith('u');
 
     // 外链文章用 <a> 包裹，内部文章用 <div>
     const card = document.createElement(isExternal ? 'a' : 'div');
-    card.className = 'article-card';
+    card.className = 'article-card' + (isUserArticle ? ' user-article-card' : '');
     if (isExternal) {
       card.href = article.externalLink;
       card.target = '_blank';
@@ -453,9 +464,13 @@ function renderTagsArticles(tagId) {
       card.onclick = () => { location.hash = '#article/' + article.id; };
     }
 
+    // 用户文章显示编辑按钮
+    const editBtn = isUserArticle ? `<button onclick="event.stopPropagation(); openEditArticleModal('${article.id}')" style="position:absolute; top:8px; right:8px; padding:4px 10px; background:rgba(255,255,255,0.9); border:none; border-radius:4px; font-size:0.75rem; cursor:pointer; color:#5f6672;">✏️ 编辑</button>` : '';
+
     card.innerHTML = `
-      <div class="article-cover" style="background: ${article.cover}">
+      <div class="article-cover" style="background: ${article.cover}; position:relative;">
         <span style="font-size: 2.8rem">${article.emoji}</span>
+        ${editBtn}
       </div>
       <div class="article-meta">
         <span class="article-date">${formatDate(article.date)}</span>
