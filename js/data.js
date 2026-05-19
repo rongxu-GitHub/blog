@@ -1,4 +1,4 @@
-﻿// ===== 博客数据 =====
+// ===== 博客数据 =====
 const BLOG_DATA = {
   site: {
     title: "六心居",
@@ -156,7 +156,9 @@ function getTagColor(tagId) {
 }
 
 function getTagCount(tagId) {
-  return BLOG_DATA.articles.filter(a => a.tag === tagId).length;
+  const userArticles = (typeof loadUserArticles === 'function') ? loadUserArticles() : [];
+  const allArticles = [...BLOG_DATA.articles, ...userArticles];
+  return allArticles.filter(a => a.tag === tagId).length;
 }
 
 function formatDate(dateStr) {
