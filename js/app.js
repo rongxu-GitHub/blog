@@ -4,6 +4,85 @@ let currentTag = 'all';
 let currentArticleId = null;
 let searchQuery = '';
 
+// ===== 股票数据存储配置 =====
+const STOCK_DATA_KEY = 'stock_trading_data';  // localStorage 键名
+
+// 从 localStorage 加载股票数据
+function loadStockData() {
+  try {
+    const saved = localStorage.getItem(STOCK_DATA_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return data;
+    }
+  } catch (e) {
+    console.warn('加载数据失败:', e);
+  }
+  return null;
+}
+
+// 保存股票数据到 localStorage
+function saveStockData(rows) {
+  try {
+    localStorage.setItem(STOCK_DATA_KEY, JSON.stringify(rows));
+    _updateSaveStatus('✓ 已保存');
+    return true;
+  } catch (e) {
+    console.error('保存失败:', e);
+    _updateSaveStatus('保存失败');
+    return false;
+  }
+}
+
+let _saveStatus = null;  // 保存状态提示元素
+
+// 更新保存状态提示
+function _updateSaveStatus(text) {
+  if (!_saveStatus) {
+    _saveStatus = document.createElement('div');
+    _saveStatus.id = 'save-status';
+    _saveStatus.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:8px 16px;background:#1a1a2e;color:#fff;border-radius:8px;font-size:0.82rem;z-index:9999;opacity:0;transition:opacity .3s;';
+    document.body.appendChild(_saveStatus);
+  }
+  _saveStatus.textContent = text;
+  _saveStatus.style.opacity = '1';
+  if (text !== '保存中...') {
+    setTimeout(() => { _saveStatus.style.opacity = '0'; }, 2000);
+  }
+}
+
+// 导出数据到文件
+function exportStockData() {
+  const data = JSON.stringify(stockRows, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stock-data-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 导入数据从文件
+function importStockData(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (Array.isArray(data)) {
+        stockRows = data;
+        saveStockData(stockRows);
+        renderStockTable();
+        renderStockSummary();
+        refreshChart();
+      }
+    } catch (err) {
+      alert('导入失败：文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+}
+
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
   renderNav();
@@ -459,7 +538,16 @@ function buildStockWidget() {
     </div>
   </div>
 
-  <p style="font-size:0.78rem; color:#9ca3af; text-align:center;">* 点击操作列「修改」按钮可编辑收益，点击「删除」可移除记录；点击日期可直接编辑。数据仅在本页面会话中保存。</p>
+  <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:16px;">
+    <button onclick="exportStockData()" style="padding:6px 16px; background:#fff; color:#3b5bdb; border:1px solid #3b5bdb; border-radius:6px; font-size:0.82rem; cursor:pointer;">
+      📥 导出数据
+    </button>
+    <label style="padding:6px 16px; background:#fff; color:#3b5bdb; border:1px solid #3b5bdb; border-radius:6px; font-size:0.82rem; cursor:pointer;">
+      📤 导入数据
+      <input type="file" accept=".json" onchange="importStockData(this.files[0])" style="display:none;">
+    </label>
+  </div>
+  <p style="font-size:0.78rem; color:#9ca3af; text-align:center; margin-top:12px;">* 点击操作列「修改」按钮可编辑收益，点击「删除」可移除记录；点击日期可直接编辑。数据自动保存到浏览器。</p>
 
   <!-- 添加记录弹窗 -->
   <div id="stock-add-modal" style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;">
@@ -525,6 +613,11 @@ function buildStockWidget() {
 }
 
 function initStockWidget() {
+  // 从 localStorage 加载数据，如果没有则使用默认数据
+  const savedData = loadStockData();
+  if (savedData && Array.isArray(savedData)) {
+    stockRows = savedData;
+  }
   renderStockTable();
   renderStockSummary();
   loadChartJS(() => drawChart('cumulative'));
@@ -616,6 +709,8 @@ function editCell(td) {
   const idx = parseInt(td.dataset.idx);
   const val = td.innerText.trim().replace(/,/g, '');
   if (val) stockRows[idx].date = val;
+  // 自动保存到 GitHub
+  saveStockData(stockRows);
 }
 
 // 修改弹窗 — 打开
@@ -659,6 +754,8 @@ function confirmEditRow() {
   renderStockTable();
   renderStockSummary();
   refreshChart();
+  // 自动保存到 GitHub
+  saveStockData(stockRows);
 }
 
 // 点击遮罩关闭修改弹窗（合并到下方统一监听器）
@@ -708,6 +805,8 @@ function confirmAddRow() {
     const last = rows[rows.length - 1];
     if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 80);
+  // 自动保存到 GitHub
+  saveStockData(stockRows);
 }
 
 // 点击弹窗遮罩也可关闭
@@ -718,12 +817,14 @@ document.addEventListener('click', function(e) {
   if (e.target === m2) closeEditModal();
 });
 
-// 删除行（保留，方便将来需要）
+// 删除行
 function deleteStockRow(idx) {
   stockRows.splice(idx, 1);
   renderStockTable();
   renderStockSummary();
   refreshChart();
+  // 自动保存到 GitHub
+  saveStockData(stockRows);
 }
 
 // ========== 图表拖拽日期选择 ==========
