@@ -1465,7 +1465,7 @@ function getArticleModalHTML(article = null) {
         <label style="display:block; font-size:0.85rem; color:#5f6672; margin-bottom:8px; font-weight:500;">
           内容 <span style="font-size:0.75rem; color:#9ca3af;">（支持 Markdown 格式）</span>
         </label>
-        <textarea id="article-content" placeholder="输入文章内容，支持 Markdown 格式：&#10;&#10;# 标题&#10;## 二级标题&#10;&#10;**粗体** *斜体*&#10;&#10;- 列表项&#10;- 列表项&#10;&#10;```javascript&#10;代码块&#10;```" rows="12"
+        <textarea id="article-content" placeholder="输入文章内容，支持 Markdown 格式：&#10;&#10;# 标题&#10;## 二级标题&#10;&#10;**粗体** *斜体*&#10;&#10;- 列表项&#10;- 列表项" rows="12"
           style="width:100%; padding:12px 14px; border:1px solid #e5e7eb; border-radius:8px; font-size:0.88rem; outline:none; box-sizing:border-box; resize:vertical; font-family:'Monaco','Menlo',monospace;">${article?.content || ''}</textarea>
       </div>
       
