@@ -641,9 +641,19 @@ function confirmEditRow() {
   if (editTargetIdx < 0) return;
   const dateVal = document.getElementById('edit-modal-date').value.trim();
   const profitVal = document.getElementById('edit-modal-profit').value.trim();
-  if (!dateVal || profitVal === '') return;
-  const profit = parseInt(profitVal);
-  if (isNaN(profit)) return;
+  
+  // 如果日期为空，聚焦并提示
+  if (!dateVal) {
+    document.getElementById('edit-modal-date').focus();
+    return;
+  }
+  // 如果收益为空，默认设为0
+  const profit = profitVal === '' ? 0 : parseInt(profitVal);
+  if (isNaN(profit)) {
+    document.getElementById('edit-modal-profit').focus();
+    return;
+  }
+  
   stockRows[editTargetIdx] = { date: dateVal, profit };
   closeEditModal();
   renderStockTable();
