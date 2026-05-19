@@ -1,0 +1,18 @@
+# 依赖目录
+node_modules/
+
+# 临时文件
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE 配置
+.vscode/
+.idea/
+
+# 代理服务器相关（如果不需要）
+proxy-server.js
+cls_test.html
+
+# Git
+.git/
